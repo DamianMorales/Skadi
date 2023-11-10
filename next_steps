@@ -1,0 +1,141 @@
+
+Initial configurations
+----------------------
+Authenticate
+$ . debian_openstack_installer/admin-openrc
+
+verify network agents are ready
+$ openstack network agent list
+
+
+Create network and subnet:
+-------------------------
+$ openstack network create --share --external \
+  --provider-physical-network provider \
+  --provider-network-type flat provider
+
+$ openstack subnet create --network provider \
+  --allocation-pool start=192.168.0.20,end=192.168.0.90 \
+  --dns-nameserver 192.168.0.1 --gateway 192.168.0.1 \
+  --subnet-range 192.168.0.0/24 provider
+
+enable icmp and ssh ports
+$ openstack security group rule create --proto icmp default
+$ openstack security group rule create --proto tcp --dst-port 22 default
+
+
+OpenStack keypair
+-----------------
+Generate a key pair:
+$ ssh-keygen -q -N ""
+
+$ openstack keypair create --public-key ~/.ssh/id_rsa.pub mykey
+$ openstack keypair list
+
+
+create cpu flavor
+-----------------
+$ openstack flavor create --id 0 --vcpus 2 --ram 1024 --disk 10 m1.nano
+
+
+Debian OpenStack image
+----------------------
+download debian openstack image
+https://cdimage.debian.org/cdimage/openstack/
+
+upload
+$ openstack image create \
+  --container-format bare \
+  --disk-format qcow2 \
+  --property hw_disk_bus=scsi \
+  --property hw_scsi_model=virtio-scsi \
+  --property os_type=linux \
+  --property os_distro=debian \
+  --property os_admin_user=debian \
+  --property os_version='10' \
+  --public \
+  --file debian-10-openstack-amd64.qcow2 \
+  debian-10-openstack-amd64
+
+
+create an instance
+------------------
+get network ID
+$ openstack network list
++--------------------------------------+----------+--------------------------------------+
+| ID                                   | Name     | Subnets                              |
++--------------------------------------+----------+--------------------------------------+
+| da5f9aa8-1bac-4aab-9931-0ce4d835783a | provider | eeeb4a46-8bb0-442b-b81c-20103c2d7f80 |
++--------------------------------------+----------+--------------------------------------+
+
+copy ID as net-id
+
+$ openstack server create --flavor m1.nano \
+  --image debian-10-openstack-amd64 \
+  --nic net-id=da5f9aa8-1bac-4aab-9931-0ce4d835783a \
+  --security-group default \
+  --key-name mykey \
+  debianinstance
+
+verify
+$ openstack server list
+
+
+error duplicate SecurityGroups or server list failed
+----------------------------------------------------
+If you get error like "More than one SecurityGroup exists with the name 'default'."
+
+$ openstack security group list
++--------------------------------------+---------+------------------------+----------------------------------+------+
+| ID                                   | Name    | Description            | Project                          | Tags |
++--------------------------------------+---------+------------------------+----------------------------------+------+
+| cd54c8c9-d754-434a-9f5c-807c3288fced | default | Default security group | 53c2118ffdbb4b6388611480c7c7a7c0 | []   |
+| f9151d2a-f49b-4828-9467-418d7cdfd1e8 | default | Default security group | 87b3104005904a2fbe18ad1a7ab601b3 | []   |
++--------------------------------------+---------+------------------------+----------------------------------+------+
+
+inspect which one you enabled icmp and port 22 using the following command
+
+$ openstack security group show cd54c8c9-d754-434a-9f5c-807c3288fced
+
+delete the other one
+$ openstack security group delete ID
+
+you may also specify security group id instead of name
+$ openstack server create --flavor m1.nano \
+  --image debian-10-openstack-amd64 \
+  --nic net-id=b2d69a6e-3a77-4d55-94fd-308558088a3d \
+  --security-group cd54c8c9-d754-434a-9f5c-807c3288fced \
+  --key-name mykey
+  debianinstance
+
+You may need to delete other default security group.
+
+note: openstack server list may fail if multiple default profiles are present.
+
+
+login to the virtual server
+---------------------------
+$ ssh debian@IP
+
+note: If you ssh before server is ready it might ask for password instead of using your ssh key. Wait until the server add your key after initial boot.
+
+You may install apache2/nginx for testing in vm.
+
+enable port 80 to allow access from other hosts.
+$ openstack security group rule create --proto tcp --dst-port 80 default
+
+(better create a new security group instead of enabling port 80 for default profile)
+
+
+Dashboard login
+---------------
+You may access dashboard:
+https://192.168.0.155/horizon/
+
+login: openstack
+pass: openstack
+Domain: default
+
+login: admin
+pass: ADMIN_PASS
+Domain: default
