@@ -137,7 +137,7 @@ $ openstack image create \
 
 # Check "next_steps" for networking and launching your first instance.
 
-# You can access dashboard: https://192.168.122.145/horizon/
+You can access dashboard: https://192.168.122.145/horizon/
 After you launch your first instance
 
 ```bash
