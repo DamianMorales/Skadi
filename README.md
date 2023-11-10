@@ -13,7 +13,7 @@ If you decide used virtual machine, this must be have 12-16 cores of processor a
 -------------------------------
 ...
 
-`allow-hotplug enp1s0  
+`allow-hotplug enp1s0 <br>
 iface enp1s0 inet dhcp #192.168.122.145`  
 
 
