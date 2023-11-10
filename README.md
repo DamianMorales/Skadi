@@ -16,6 +16,7 @@ If you decide used virtual machine, this must be have 12-16 cores of processor a
 allow-hotplug enp1s0
 iface enp1s0 inet dhcp #192.168.122.145
 
+
 allow-hotplug enp7s0
 iface enp7s0 inet static
     address 10.0.0.11
